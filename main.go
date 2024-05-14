@@ -17,6 +17,19 @@ type User struct {
 	Role     string `json:"role"` // Kullanıcı rolü (admin, user1 veya user2)
 }
 
+// TO-DO Listesi modeli
+type TodoList struct {
+	ID           string     `json:"id"`
+	Title        string     `json:"title"`
+	CreationDate time.Time  `json:"creation_date"`
+	ModifiedDate time.Time  `json:"modified_date"`
+	DeletedDate  *time.Time `json:"deleted_date,omitempty"`
+	Completion   int        `json:"completion"`
+
+	DeletionDate         *time.Time `json:"deletionDate,omitempty"` // İşaretçi olarak tanımla
+	CompletionPercentage int        `json:"completionPercentage"`
+}
+
 // Anahtar
 var jwtKey = []byte("my_secret_key")
 
@@ -26,6 +39,9 @@ var users = []User{
 	{Username: "user2", Password: "password2", Role: "user2"},
 	{Username: "admin", Password: "adminpass", Role: "admin"},
 }
+
+// TO-DO Listelerini saklayan bir dilim (slice)
+var todoLists = make(map[string]TodoList)
 
 // Token yapısı
 type Claims struct {
@@ -85,11 +101,139 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Ana Sayfa")
 }
 
+// TO-DO listesi oluşturma
+func createTodoList(w http.ResponseWriter, r *http.Request) {
+	var newList TodoList
+	err := json.NewDecoder(r.Body).Decode(&newList)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// ID oluşturma
+	id := fmt.Sprintf("%d", time.Now().UnixNano())
+	newList.ID = id
+	newList.CreationDate = time.Now()
+	newList.ModifiedDate = time.Now()
+
+	// TODO listesini saklama
+	todoLists[id] = newList
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(newList)
+}
+
+// TO-DO listelerini listeleme
+func getTodoLists(w http.ResponseWriter, r *http.Request) {
+	// Boş bir slice oluşturalım, sadece silinmemiş TO-DO listelerini ekleyeceğiz
+	var activeTodoLists []TodoList
+
+	// TodoLists map'ini döngüye alarak silinmemiş listeleri kontrol edelim
+	for _, todo := range todoLists {
+		// Eğer DeletionDate alanı boş ise (silinmemiş ise), listeyi aktif listelere ekleyelim
+		if todo.DeletionDate == nil {
+			activeTodoLists = append(activeTodoLists, todo)
+		}
+	}
+
+	// JSON yanıtı hazırlayalım
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(activeTodoLists)
+}
+
+// TO-DO listesini güncelleme
+func updateTodoList(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r) // URL parametrelerini al
+
+	// URL'den gelen ID'yi al
+	id := params["id"]
+
+	var updatedList TodoList
+	err := json.NewDecoder(r.Body).Decode(&updatedList)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// ID'ye sahip liste var mı kontrol et
+	_, ok := todoLists[id]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// Güncelleme tarihi ekleyerek listeyi güncelle
+	updatedList.ID = id
+	updatedList.ModifiedDate = time.Now()
+	todoLists[id] = updatedList
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedList)
+}
+
+// TO-DO listesini silme
+func deleteTodoList(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r) // URL parametrelerini al
+
+	// URL'den gelen ID'yi al
+	id := params["id"]
+
+	// ID'ye sahip liste var mı kontrol et
+	todo, ok := todoLists[id]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// Silinme tarihini ayarla
+	deletionTime := time.Now()
+	todo.DeletionDate = &deletionTime // İşaretçi olarak atanması gerekiyor
+
+	// Güncellenmiş TO-DO listesini tekrar map'e ekle
+	todoLists[id] = todo
+
+	w.WriteHeader(http.StatusNoContent) // Başarılı bir yanıt, içerik yok
+}
+
+// TO-DO listesinin tamamlanma yüzdesini güncelleme
+func updateCompletionPercentage(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
+
+	var todo TodoList
+	err := json.NewDecoder(r.Body).Decode(&todo)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// ID'ye sahip liste var mı kontrol et
+	_, ok := todoLists[id]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// CompletionPercentage alanını güncelle
+	todoList := todoLists[id]
+	todoList.CompletionPercentage = todo.CompletionPercentage
+	todoLists[id] = todoList
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(todoLists[id])
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/login", login).Methods("POST")
 	r.HandleFunc("/home", homePage).Methods("GET")
+	r.HandleFunc("/todo/create", createTodoList).Methods("POST")
+	r.HandleFunc("/todo/lists", getTodoLists).Methods("GET")
+	r.HandleFunc("/todo/update/{id}", updateTodoList).Methods("PUT") // PUT request ile güncelleme
+	r.HandleFunc("/todo/delete/{id}", deleteTodoList).Methods("DELETE")
+	r.HandleFunc("/todo/completion/{id}", updateCompletionPercentage).Methods("PUT") // Tamamlanma yüzdesi güncelleme endpointi
 
 	fmt.Println("Server listening on port 8080...")
 	http.ListenAndServe(":8080", r)
 }
+
