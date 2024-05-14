@@ -30,6 +30,7 @@ type TodoList struct {
 
 	DeletionDate         *time.Time `json:"deletionDate,omitempty"` // İşaretçi olarak tanımla
 	CompletionPercentage int        `json:"completionPercentage"`
+	Username             string     `json:"username"` // Kullanıcı adını sakla
 }
 
 // Anahtar
@@ -112,6 +113,10 @@ func createTodoList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Kullanıcının adını al
+	userClaims := r.Context().Value("user").(*Claims)
+	newList.Username = userClaims.Username // TO-DO listesine kullanıcı adını ekle
+
 	// ID oluşturma
 	id := fmt.Sprintf("%d", time.Now().UnixNano())
 	newList.ID = id
@@ -127,20 +132,24 @@ func createTodoList(w http.ResponseWriter, r *http.Request) {
 
 // TO-DO listelerini listeleme
 func getTodoLists(w http.ResponseWriter, r *http.Request) {
-	// Boş bir slice oluşturalım, sadece silinmemiş TO-DO listelerini ekleyeceğiz
-	var activeTodoLists []TodoList
+	// Kullanıcının adını al
+	userClaims := r.Context().Value("user").(*Claims)
+	username := userClaims.Username
 
-	// TodoLists map'ini döngüye alarak silinmemiş listeleri kontrol edelim
+	// Boş bir slice oluşturalım, sadece isteği yapan kullanıcının TO-DO listelerini ekleyeceğiz
+	var todoListsToReturn []TodoList
+
+	// Sadece isteği yapan kullanıcının TO-DO listelerini ekleyelim
 	for _, todo := range todoLists {
-		// Eğer DeletionDate alanı boş ise (silinmemiş ise), listeyi aktif listelere ekleyelim
-		if todo.DeletionDate == nil {
-			activeTodoLists = append(activeTodoLists, todo)
+		// Eğer DeletionDate alanı boş ise (silinmemiş ise) ve TO-DO listesi isteği yapan kullanıcı tarafından oluşturulmuşsa, listeyi ekle
+		if todo.DeletionDate == nil && todo.Username == username {
+			todoListsToReturn = append(todoListsToReturn, todo)
 		}
 	}
 
 	// JSON yanıtı hazırlayalım
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(activeTodoLists)
+	json.NewEncoder(w).Encode(todoListsToReturn)
 }
 
 // TO-DO listesini güncelleme
@@ -261,7 +270,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/login", login).Methods("POST")
 	r.HandleFunc("/home", homePage).Methods("GET")
-	r.HandleFunc("/todo/create", createTodoList).Methods("POST")
+	r.HandleFunc("/todo/create", authenticate(createTodoList)).Methods("POST") // authenticate middleware kullanılacak
 	r.HandleFunc("/todo/lists", authenticate(getTodoLists)).Methods("GET")
 	r.HandleFunc("/todo/update/{id}", authenticate(updateTodoList)).Methods("PUT") // PUT request ile güncelleme
 	r.HandleFunc("/todo/delete/{id}", authenticate(deleteTodoList)).Methods("DELETE")
