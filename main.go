@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -223,15 +225,47 @@ func updateCompletionPercentage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(todoLists[id])
 }
 
+func authenticate(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// İstek başlıklarından Authorization başlığını al
+		tokenString := r.Header.Get("Authorization")
+
+		// "Bearer " ön eki ile gelen JWT'yi ayır
+		tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
+
+		// Token doğrulama işlemi
+		token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		// Token'ı işleme
+		claims, ok := token.Claims.(*Claims)
+		if !ok || !token.Valid {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		// Context'e kullanıcı bilgilerini ekle
+		ctx := context.WithValue(r.Context(), "user", claims)
+
+		// Sonraki işlemi devam ettir
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/login", login).Methods("POST")
 	r.HandleFunc("/home", homePage).Methods("GET")
 	r.HandleFunc("/todo/create", createTodoList).Methods("POST")
-	r.HandleFunc("/todo/lists", getTodoLists).Methods("GET")
-	r.HandleFunc("/todo/update/{id}", updateTodoList).Methods("PUT") // PUT request ile güncelleme
-	r.HandleFunc("/todo/delete/{id}", deleteTodoList).Methods("DELETE")
-	r.HandleFunc("/todo/completion/{id}", updateCompletionPercentage).Methods("PUT") // Tamamlanma yüzdesi güncelleme endpointi
+	r.HandleFunc("/todo/lists", authenticate(getTodoLists)).Methods("GET")
+	r.HandleFunc("/todo/update/{id}", authenticate(updateTodoList)).Methods("PUT") // PUT request ile güncelleme
+	r.HandleFunc("/todo/delete/{id}", authenticate(deleteTodoList)).Methods("DELETE")
+	r.HandleFunc("/todo/completion/{id}", authenticate(updateCompletionPercentage)).Methods("PUT") // Tamamlanma yüzdesi güncelleme endpointi
 
 	fmt.Println("Server listening on port 8080...")
 	http.ListenAndServe(":8080", r)
