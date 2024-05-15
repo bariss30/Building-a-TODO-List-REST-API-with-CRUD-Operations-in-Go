@@ -80,8 +80,8 @@ Middleware Kullanımı: authenticate adlı bir ara yazılım, JWT doğrulamasın
 [Top 5 Golang Frameworks](https://masteringbackend.com/posts/top-5-golang-frameworks)
 
 
-Framework ler kulanarak zenginleştirilebilir
 
+Projenin gelişimini takip etmek için kullanıcı arayüzü sunmak da önemlidir. Kullanıcı arayüzü, projenin mevcut durumunu, yapılan değişiklikleri ve gelecek adımları görsel olarak gösterir. Bunun için basit bir dashboard veya proje yönetim aracı kullanılabilir. Bu arayüz, ekibin proje ilerlemesini izlemesine ve işleri önceliklendirmesine yardımcı olur.
 
 
 
@@ -106,7 +106,7 @@ Framework ler kulanarak zenginleştirilebilir
 Fonksiyonların Endpoint'lerle kullanımı
 
 
-"/todo/lists" Methods("GET")
+"/todo/lists" Methods("GET") 
 "/todo/update/{id}" Methods("PUT")              // PUT request ile güncelleme
 "/todo/delete/{id}"  Methods("DELETE")
 "/todo/completion/{id}" Methods("PUT")            body{"completionPercentage": 75}    // Tamamlanma yüzdesi güncelleme endpointi
@@ -121,3 +121,22 @@ Bu kod bir HTTP sunucusu uygulamasıdır. Uygulama, kullanıcıların giriş yap
 
 
 Bu kod, kullanıcı yönetimi ve temel to-do listesi işlemlerini gerçekleştiren basit bir RESTful API sunar.
+
+
+
+
+
+                                  -------------------------------------------------------
+
+                                  Kodun Geliştirilmesi:
+Hata Kontrolleri: Kod, hata kontrolü yaparken daha ayrıntılı hata mesajları sağlayabilir. Örneğin, createTodoList ve updateTodoList fonksiyonlarındaki hata mesajları daha açıklayıcı olabilir.
+
+Veritabanı Entegrasyonu: Kod, verileri hafızada bir dilimde saklar. Gerçek bir uygulama için veritabanı entegrasyonu önemlidir. SQLite, PostgreSQL veya MongoDB gibi bir veritabanı kullanılabilir.
+
+Middleware Genişletme: authenticate middleware'i genişletilebilir. Örneğin, rol bazlı yetkilendirme eklenerek farklı kullanıcı rollerine göre erişim kontrolleri yapılabilir.
+
+Dökümantasyon Eklenmesi: Kodun dökümantasyonu artırılabilir. Fonksiyonlar, yapılar ve HTTP endpoint'leri hakkında daha fazla açıklama eklemek, kodun anlaşılmasını kolaylaştırır.
+
+Geliştirilmiş Güvenlik: Daha güvenli bir uygulama için bazı önlemler alınabilir. Örneğin, şifrelerin salt kullanılarak hashlenmesi ve hassas verilerin JWT içinde saklanmaması gibi.
+
+Unit Testler: Kodun test kapsamı genişletilebilir. Unit testler, kodun istikrarını sağlar ve hataların erken tespit edilmesine yardımcı olur.
