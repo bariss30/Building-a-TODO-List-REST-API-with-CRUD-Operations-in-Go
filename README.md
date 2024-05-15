@@ -118,3 +118,6 @@ Fonksiyonların Endpoint'lerle kullanımı
 işte kodun özeti:
 
 Bu kod bir HTTP sunucusu uygulamasıdır. Uygulama, kullanıcıların giriş yapmasına, to-do listeleri oluşturmasına, güncellemesine, silmesine ve to-do listelerini listelemesine olanak tanır. Ayrıca, to-do listelerinin tamamlanma yüzdesini güncellemek için bir endpoint sağlar. Uygulama, Gorilla Mux ve JWT Go kütüphanelerini kullanır.
+
+
+Bu kod, kullanıcı yönetimi ve temel to-do listesi işlemlerini gerçekleştiren basit bir RESTful API sunar.
