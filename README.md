@@ -85,11 +85,36 @@ Framework ler kulanarak zenginleştirilebilir
 
 
 
+                                        ---------------------------------------------------
+
+
+   ![Yetkilendirme kullanım örnek ](https://github.com/bariss30/To-Do-list-with-go/blob/main/agewbgao.gif)
 
 
 
 
 
+
+
+
+
+
+
+
+                                     ---------------------------------------------------
+
+Fonksiyonların Endpoint'lerle kullanımı
+
+
+"/todo/lists" Methods("GET")
+"/todo/update/{id}" Methods("PUT")              // PUT request ile güncelleme
+"/todo/delete/{id}"  Methods("DELETE")
+"/todo/completion/{id}" Methods("PUT")            body{"completionPercentage": 75}    // Tamamlanma yüzdesi güncelleme endpointi
+
+                                    
+                                       ---------------------------------------------------
 
                                          
+işte kodun özeti:
 
+Bu kod bir HTTP sunucusu uygulamasıdır. Uygulama, kullanıcıların giriş yapmasına, to-do listeleri oluşturmasına, güncellemesine, silmesine ve to-do listelerini listelemesine olanak tanır. Ayrıca, to-do listelerinin tamamlanma yüzdesini güncellemek için bir endpoint sağlar. Uygulama, Gorilla Mux ve JWT Go kütüphanelerini kullanır.
