@@ -7,10 +7,20 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 )
+
+
+
+
+
+
+
+
+
+
+
 
 // Kullanıcı modeli
 type User struct {
@@ -18,6 +28,9 @@ type User struct {
 	Password string `json:"password"`
 	Role     string `json:"role"` // Kullanıcı rolü (admin, user1 veya user2)
 }
+
+
+
 
 // TO-DO Listesi modeli
 type TodoList struct {
@@ -27,14 +40,25 @@ type TodoList struct {
 	ModifiedDate time.Time  `json:"modified_date"`
 	DeletedDate  *time.Time `json:"deleted_date,omitempty"`
 	Completion   int        `json:"completion"`
-
 	DeletionDate         *time.Time `json:"deletionDate,omitempty"` // İşaretçi olarak tanımla
 	CompletionPercentage int        `json:"completionPercentage"`
 	Username             string     `json:"username"` // Kullanıcı adını sakla
 }
 
-// Anahtar
-var jwtKey = []byte("my_secret_key")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Kullanıcıları saklayan bir dilim (slice)
 var users = []User{
@@ -45,6 +69,17 @@ var users = []User{
 
 // TO-DO Listelerini saklayan bir dilim (slice)
 var todoLists = make(map[string]TodoList)
+
+
+
+
+
+
+
+
+
+// Anahtar
+var jwtKey = []byte("my_secret_key")
 
 // Token yapısı
 type Claims struct {
@@ -71,6 +106,24 @@ func generateJWT(username, role string) (string, error) {
 	}
 	return tokenString, nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Login işlemi
 func login(w http.ResponseWriter, r *http.Request) {
@@ -99,10 +152,34 @@ func login(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Geçersiz kullanıcı adı veya şifre"))
 }
 
+
+
+
+
+
+
+
+
+
+
+
 // Ana sayfa
 func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Ana Sayfa")
 }
+
+
+
+
+
+
+
+
+
+//fonk start
+
+
+
 
 // TO-DO listesi oluşturma
 func createTodoList(w http.ResponseWriter, r *http.Request) {
@@ -130,27 +207,73 @@ func createTodoList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newList)
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // TO-DO listelerini listeleme
 func getTodoLists(w http.ResponseWriter, r *http.Request) {
 	// Kullanıcının adını al
 	userClaims := r.Context().Value("user").(*Claims)
 	username := userClaims.Username
+	role := userClaims.Role
 
-	// Boş bir slice oluşturalım, sadece isteği yapan kullanıcının TO-DO listelerini ekleyeceğiz
-	var todoListsToReturn []TodoList
+	// Yönetici (admin) ise, tüm kullanıcıların TO-DO listelerini alabilir
+	if role == "admin" {
+		var allTodoLists []TodoList
+		for _, todo := range todoLists {
+			if todo.DeletionDate == nil {
+				allTodoLists = append(allTodoLists, todo)
+			}
+		}
 
-	// Sadece isteği yapan kullanıcının TO-DO listelerini ekleyelim
+		// JSON yanıtı hazırlayalım
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(allTodoLists)
+		return
+	}
+
+	// Diğer kullanıcılar sadece kendi TO-DO listelerini alabilir
+	var userTodoLists []TodoList
 	for _, todo := range todoLists {
-		// Eğer DeletionDate alanı boş ise (silinmemiş ise) ve TO-DO listesi isteği yapan kullanıcı tarafından oluşturulmuşsa, listeyi ekle
 		if todo.DeletionDate == nil && todo.Username == username {
-			todoListsToReturn = append(todoListsToReturn, todo)
+			userTodoLists = append(userTodoLists, todo)
 		}
 	}
 
 	// JSON yanıtı hazırlayalım
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(todoListsToReturn)
+	json.NewEncoder(w).Encode(userTodoLists)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // TO-DO listesini güncelleme
 func updateTodoList(w http.ResponseWriter, r *http.Request) {
@@ -182,6 +305,21 @@ func updateTodoList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(updatedList)
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // TO-DO listesini silme
 func deleteTodoList(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r) // URL parametrelerini al
@@ -205,6 +343,21 @@ func deleteTodoList(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent) // Başarılı bir yanıt, içerik yok
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // TO-DO listesinin tamamlanma yüzdesini güncelleme
 func updateCompletionPercentage(w http.ResponseWriter, r *http.Request) {
@@ -233,6 +386,22 @@ func updateCompletionPercentage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(todoLists[id])
 }
+
+
+
+// fonks end
+
+
+
+
+
+
+
+
+
+
+
+
 
 func authenticate(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -265,6 +434,21 @@ func authenticate(next http.HandlerFunc) http.HandlerFunc {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func main() {
 	r := mux.NewRouter()
